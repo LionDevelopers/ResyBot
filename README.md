@@ -15,4 +15,11 @@
 #### Planned Features
 *   [ ] Make reservation for user (using account API key)
 
-## How to use:
+## How to use
+
+1. Clone this repository.
+2. Create a .env file based on .env.example and add your Discord Webhook.
+3. Run docker-compose up.
+
+mvn clean compile exec:java -Dexec.mainClass="org.liondevelopers.resybot.Main"
+docker run -e DISCORD_WEBHOOK="https://discord.com/api/webhooks/..." resy-monitor
