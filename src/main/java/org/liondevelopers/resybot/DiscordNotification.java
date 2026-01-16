@@ -6,14 +6,25 @@ import java.util.List;
 import club.minnced.discord.webhook.WebhookClient;
 import club.minnced.discord.webhook.send.WebhookEmbed;
 import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
+import io.github.cdimascio.dotenv.Dotenv;
 
 class DiscordNotification {
 
-    private static final String URL = System.getenv("DISCORD_WEBHOOK");
-    
     public static void sendMsg(List<Slot> slotMatches) {
+
+        String URL = System.getenv("DISCORD_WEBHOOK");
+        // Fall back to .env file if not set (for local development)
+        if (URL == null || URL.isEmpty()) {
+            try {
+                Dotenv dotenv = Dotenv.load();
+                URL = dotenv.get("DISCORD_WEBHOOK");
+            } catch (Exception e) {
+                // .env file not found, which is fine if using env vars
+            }
+        }
         if (URL == null || URL.isEmpty()) {
             System.err.println("Error: DISCORD_WEBHOOK environment variable not set!");
+            return;
         }
         
         try (WebhookClient client = WebhookClient.withUrl(URL)) {
