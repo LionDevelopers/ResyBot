@@ -20,3 +20,7 @@
 1. Clone the repository to your local machine:
 2. Create a .env file based on .env.example and add your Discord Webhook.
 3. Run docker compose up --build
+
+#### Known Bugs
+*   [ ] Not all time slots are being picked up
+*   [ ] 
