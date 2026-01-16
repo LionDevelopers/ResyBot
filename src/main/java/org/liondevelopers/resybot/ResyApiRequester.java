@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 
 public class ResyApiRequester {
     final private String apiKey = "ResyAPI api_key=\"VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5\"";
+    final private HttpClient client = HttpClient.newHttpClient();
     final private String url;
 
     public ResyApiRequester(String url) {
@@ -40,7 +41,6 @@ public class ResyApiRequester {
                 .build();
 
         try {
-            HttpClient client = HttpClient.newHttpClient();
             // Send the request synchronously and get the response
             HttpResponse<String> response = client.send(venueRequest, HttpResponse.BodyHandlers.ofString());
 
@@ -80,7 +80,6 @@ public class ResyApiRequester {
                 .build();
 
         try {
-            HttpClient client = HttpClient.newHttpClient();
             // Send the request synchronously and get the response
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
