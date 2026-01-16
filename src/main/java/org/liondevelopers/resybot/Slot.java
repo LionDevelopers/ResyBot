@@ -1,13 +1,17 @@
 public class Slot {
     public String dateTime;
-    public int minPartySize;
-    public int maxPartySize;
+    public int partySize;
 
-    public Slot(String dateTime, int minPartySize, int maxPartySize) {
+    public Slot(String dateTime, int partySize) {
 
         this.dateTime = dateTime;
-        this.minPartySize = minPartySize;
-        this.maxPartySize = maxPartySize;
+        this.partySize = partySize;
 
+    }
+
+    @Override
+    public String toString() {
+        return String.format("[dateTime: %s | partySize: %d]", 
+                             dateTime, partySize);
     }
 }

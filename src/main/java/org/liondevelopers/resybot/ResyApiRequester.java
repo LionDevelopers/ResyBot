@@ -15,7 +15,7 @@ public class ResyApiRequester {
     final private HttpClient client = HttpClient.newHttpClient();
     final private String url;
     private static int venueId;
-    final private long BASE_MS = TimeUnit.MINUTES.toMillis(5);
+    final private long BASE_MS = TimeUnit.MINUTES.toMillis(0);
 
     public ResyApiRequester(String url) {
         this.url = url;
@@ -55,24 +55,25 @@ public class ResyApiRequester {
                 venueId = JsonParser.parseVenueId(response.body());
 
             } else {
-                System.err.println("API request failed with status code: " + response.statusCode());
+                System.err.println("Venue API request failed with status code: " + response.statusCode());
                 System.err.println("Response body: " + response.body());
             }
 
         } catch (IOException | InterruptedException e) {
             System.err.println("An error occurred during the HTTP request: " + e.getMessage());
-            // e.printStackTrace(); // LOG?
         }
     }
 
-    public void getWebsiteData(List<LocalDate> datesToCheck) {
+    public void getWebsiteData(List<LocalDate> datesToCheck, int partySize) {
         for (LocalDate date : datesToCheck) {
+
+            System.out.println("Checking reservations for " + date);
 
             double lat = 0;
             double lon = 0;
             String apiUrl = String.format(
-                    "https://api.resy.com/4/find?lat=%f&long=%f&day=%s&venue_id=%s",
-                    lat, lon, date, venueId
+                    "https://api.resy.com/4/find?lat=%f&long=%f&day=%s&party_size=%d&venue_id=%s",
+                    lat, lon, date, partySize, venueId
             );
 
             HttpRequest request = HttpRequest.newBuilder()
@@ -92,7 +93,7 @@ public class ResyApiRequester {
                     JsonParser.parseAvailability(response.body());
 
                 } else {
-                    System.err.println("API request failed with status code: " + response.statusCode());
+                    System.err.println("Webiste API request failed with status code: " + response.statusCode());
                 }
 
             } catch (IOException | InterruptedException e) {
