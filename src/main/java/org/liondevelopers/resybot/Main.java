@@ -54,6 +54,7 @@ class Main {
         ResyApiRequester apiRequester = new ResyApiRequester(url);
 
         while (true) {
+            JsonParser.clearSlots();
             DateTimeFormatter dateTimeSplit = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             apiRequester.getVenueId();
             apiRequester.getWebsiteData(datesToCheck, partySize);
