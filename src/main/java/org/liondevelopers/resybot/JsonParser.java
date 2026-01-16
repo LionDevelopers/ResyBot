@@ -38,4 +38,8 @@ public class JsonParser {
         return slotList;
     }
 
+    public static void clearSlots() {
+        slotList.clear();
+    }
+
 }
