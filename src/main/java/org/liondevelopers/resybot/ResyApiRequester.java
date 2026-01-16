@@ -8,9 +8,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ResyApiRequester {
-    private String apiKey = "ResyAPI api_key=\"VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5\"";
-    private HttpClient client = HttpClient.newHttpClient();
-    private String url;
+    final private String apiKey = "ResyAPI api_key=\"VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5\"";
+    final private String url;
 
     public ResyApiRequester(String url) {
         this.url = url;
@@ -41,6 +40,7 @@ public class ResyApiRequester {
                 .build();
 
         try {
+            HttpClient client = HttpClient.newHttpClient();
             // Send the request synchronously and get the response
             HttpResponse<String> response = client.send(venueRequest, HttpResponse.BodyHandlers.ofString());
 
@@ -56,7 +56,7 @@ public class ResyApiRequester {
 
         } catch (IOException | InterruptedException e) {
             System.err.println("An error occurred during the HTTP request: " + e.getMessage());
-            e.printStackTrace();
+            // e.printStackTrace(); // LOG?
         }
     }
 
@@ -80,6 +80,7 @@ public class ResyApiRequester {
                 .build();
 
         try {
+            HttpClient client = HttpClient.newHttpClient();
             // Send the request synchronously and get the response
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
@@ -95,7 +96,7 @@ public class ResyApiRequester {
 
         } catch (IOException | InterruptedException e) {
             System.err.println("An error occurred during the HTTP request: " + e.getMessage());
-            e.printStackTrace();
+            // e.printStackTrace(); // LOG?
         }
     }
 }
