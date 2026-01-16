@@ -1,3 +1,5 @@
+package org.liondevelopers.resybot;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -13,7 +15,7 @@ class Main {
     public static void main(String[] args) {
 
         int partySize = 4;
-        String url = "https://resy.com/cities/new-york-ny/venues/monkey-bar-nyc";
+        String url = "https://resy.com/cities/new-york-ny/venues/cote-nyc?date=2026-01-17&seats=4";
         LocalDate date1 = LocalDate.of(2026,1,16);
         LocalDate date2 = LocalDate.of(2026,1,17);
         List<LocalDate> datesToCheck = new ArrayList<>();
@@ -73,6 +75,7 @@ class Main {
             
             System.out.println("DEBUG - SLOTLIST: " + slotList);
             System.out.println("DEBUG - SLOTMATCHES: " + slotMatches);
+            DiscordNotification.sendMsg(slotMatches);
 
             if (!slotMatches.isEmpty()) {
 

@@ -1,3 +1,5 @@
+package org.liondevelopers.resybot;
+
 import java.util.ArrayList;
 import java.util.List;
 

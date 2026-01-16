@@ -1,4 +1,7 @@
+package org.liondevelopers.resybot;
+
 public class Slot {
+    
     public String dateTime;
     public int partySize;
 
