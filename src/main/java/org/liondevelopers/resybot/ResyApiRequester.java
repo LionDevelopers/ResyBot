@@ -15,7 +15,7 @@ public class ResyApiRequester {
     final private HttpClient client = HttpClient.newHttpClient();
     final private String url;
     private static int venueId;
-    final private long baseMs = TimeUnit.MINUTES.toMillis(5);
+    final private long BASE_MS = TimeUnit.MINUTES.toMillis(5);
 
     public ResyApiRequester(String url) {
         this.url = url;
@@ -101,7 +101,7 @@ public class ResyApiRequester {
             
             try {
                 long jitterMs = ThreadLocalRandom.current().nextLong(0, 1501);
-                TimeUnit.MILLISECONDS.sleep(baseMs + jitterMs);
+                TimeUnit.MILLISECONDS.sleep(BASE_MS + jitterMs);
             } catch (InterruptedException e) {
                 System.out.println("Sleep was interrupted");
                 Thread.currentThread().interrupt();

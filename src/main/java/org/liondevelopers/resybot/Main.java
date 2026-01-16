@@ -1,10 +1,13 @@
-import java.util.*;
 import java.time.LocalDate;
-import java.time.DateTimeFormatter;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 class Main {
+    private static final long BASE_MS = TimeUnit.MINUTES.toMillis(5);
 
     public static void main(String[] args) {
 
@@ -15,7 +18,7 @@ class Main {
         String partySizeStr = scanner.nextLine();
         int partySize = Integer.parseInt(partySizeStr);
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         List<LocalDate> datesToCheck = new ArrayList<>();
         System.out.print("Enter a date to search (YYYY-MM-DD) (exit to exit): ");
         while (true) {
@@ -23,7 +26,7 @@ class Main {
             if (dateInput.equalsIgnoreCase("exit")) {
                 break;
             }
-            LocalDate date = LocalDate.parse(dateInput, formatter);
+            LocalDate date = LocalDate.parse(dateInput, inputFormatter);
             datesToCheck.add(date);
             System.out.print("Enter another date to search (YYYY-MM-DD) (exit to exit): ");
         }
@@ -40,12 +43,14 @@ class Main {
         ResyApiRequester apiRequester = new ResyApiRequester(url);
 
         while (true) {
+            DateTimeFormatter dateTimeSplit = DateTimeFormatter.ofPattern("yyyy-MMM-dd HH:mm:ss");
             apiRequester.getWebsiteData(datesToCheck);
             List<Slot> slotList = JsonParser.getSlotList();
             for (Slot slot : slotList) {
-                boolean isDate = datesToCheck.contains(LocalDate.parse(slot.date, formatter));
-                boolean isPartySize = slot.partySize == partySize;
-                boolean isTime = isTimeBetween(startTime, endTime, LocalTime.parse(slot.time));
+                LocalDateTime dateTime = LocalDateTime.parse(slot.dateTime, dateTimeSplit);
+                boolean isDate = datesToCheck.contains(dateTime.toLocalDate());
+                boolean isPartySize = slot.minPartySize <= partySize && slot.maxPartySize >= partySize;
+                boolean isTime = isTimeBetween(startTime, endTime, dateTime.toLocalTime());
                 if (isDate && isPartySize && isTime) {
 
                 }
@@ -55,15 +60,21 @@ class Main {
 
 
             // 4. Ping user ONLY if a new slot appeared
-            if (/*availability found*/) {
-                String alertMessage = manager.getFullAvailabilityReport();
-                discordService.sendMessage(alertMessage);
+            // if (/*availability found*/) {
+            //     String alertMessage = manager.getFullAvailabilityReport();
+            //     discordService.sendMessage(alertMessage);
                 
-                System.exit(0);
-            }
+            //     System.exit(0);
+            // }
 
             System.out.println("Check complete. Waiting for next interval...");
-            Thread.sleep(60000); // Wait 1 minute before checking all dates again
+            try {
+                long jitterMs = ThreadLocalRandom.current().nextLong(0, 1501);
+                TimeUnit.MILLISECONDS.sleep(BASE_MS + jitterMs);
+            } catch (InterruptedException e) {
+                System.out.println("Sleep was interrupted");
+                Thread.currentThread().interrupt();
+            }
         }
     }
 

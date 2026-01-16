@@ -1,7 +1,7 @@
 import java.util.List;
 import java.util.ArrayList;
-import tools.jackson.core.JsonNode;
-import toold.jackson.core.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 public class JsonParser {
 
@@ -9,24 +9,26 @@ public class JsonParser {
 
     public static int parseVenueId(String response) {
 
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode rootNode = mapper.readTree(response);
-        return rootNode.path("id").path("resy").asInt();
+        JsonMapper mapper = JsonMapper.builder().build();
+        JsonNode root = mapper.readTree(response);
+        return root.path("id").path("resy").asInt();
 
     }
 
     public static void parseAvailability(String response) {
+        JsonMapper mapper = JsonMapper.builder().build();
+        JsonNode root = mapper.readTree(response);
+        JsonNode slotsNode = root.path("slots");
 
-        // for loop going through each entry
-        String date;
-        /* = json parsed date */
-        int partySize;
-        /* = json parsed date */
-        String time;
-        /* = json parsed date */
-        Slot slot = new Slot(date, partySize, time);
-        slotList.add(slot);
-
+        if (slotsNode.isArray()) {
+            for (JsonNode slot : slotsNode) {
+                String dateTime = slot.path("date").path("start").asText("");
+                int minPartySize = slot.path("size").path("min").asInt(0);
+                int maxPartySize = slot.path("size").path("max").asInt(0);
+                Slot newSlot = new Slot(dateTime, minPartySize, maxPartySize);
+                slotList.add(newSlot);
+            }
+        }
     }
 
     public static List<Slot> getSlotList() {
