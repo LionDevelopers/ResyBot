@@ -36,11 +36,6 @@ FROM deps as package
 WORKDIR /build
 
 # Copy source files and pom.xml
-FROM deps as package
-
-WORKDIR /build
-
-# Copy source files and pom.xml
 COPY pom.xml .
 COPY src/ ./src/
 COPY .mvn/ .mvn/

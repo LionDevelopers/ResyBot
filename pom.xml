@@ -45,6 +45,20 @@
             <artifactId>dotenv-java</artifactId>
             <version>3.0.0</version>
         </dependency>
+        <!-- Embedded web server for the frontend + REST API -->
+        <dependency>
+            <groupId>io.javalin</groupId>
+            <artifactId>javalin</artifactId>
+            <version>6.7.0</version>
+        </dependency>
+        <!-- Pin kotlin-stdlib to the version Javalin 6.7 needs; otherwise Maven's
+             nearest-wins resolves an older 1.6.x from the okhttp/discord path and
+             Javalin fails at runtime with NoClassDefFoundError (kotlin.enums). -->
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>1.9.25</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -79,7 +93,20 @@
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>org.liondevelopers.resybot.Main</mainClass>
                                 </transformer>
+                                <!-- Merge META-INF/services entries so Jetty/Javalin providers resolve in the uber-jar -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
                             </transformers>
+                            <filters>
+                                <!-- Drop signature files from signed deps to avoid SecurityException in the uber-jar -->
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                         </configuration>
                     </execution>
                 </executions>

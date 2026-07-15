@@ -6,41 +6,54 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class ResyApiRequester {
-    final private String apiKey = "ResyAPI api_key=\"VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5\"";
-    final private HttpClient client = HttpClient.newHttpClient();
-    final private String url;
-    private static int venueId;
-    final private long BASE_MS = TimeUnit.MINUTES.toMillis(0);
 
-    public ResyApiRequester(String url) {
-        this.url = url;
+    // Resy's public web-client key (identical for every browser, not a personal secret).
+    // Overridable via the RESY_API_KEY env var / .env in case Resy rotates it.
+    private static final String DEFAULT_API_KEY = "VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5";
+    private static final String USER_AGENT =
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:146.0) Gecko/20100101 Firefox/146.0";
+
+    private final String apiKey =
+            String.format("ResyAPI api_key=\"%s\"", Config.get("RESY_API_KEY", DEFAULT_API_KEY));
+    private final HttpClient client = HttpClient.newHttpClient();
+    private final MonitorRequest request;
+
+    private int venueId;
+    private String venueName = "";
+
+    // Small delay between per-date requests within a single availability sweep.
+    private static final long BETWEEN_DATE_MS = TimeUnit.MILLISECONDS.toMillis(0);
+
+    public ResyApiRequester(MonitorRequest request) {
+        this.request = request;
     }
 
-    public void getVenueId() {
-        String city = "NOT_FOUND", slug = "NOT_FOUND";
-        Pattern pattern = Pattern.compile("resy\\.com/cities/([^/]+)/(?:venues/)?([^/?]+)");
-        Matcher matcher = pattern.matcher(url);
+    public int getVenueId() {
+        return venueId;
+    }
 
-        if (matcher.find()) {
-            city = matcher.group(1);
-            slug = matcher.group(2);
-        }
+    public String getVenueName() {
+        return venueName;
+    }
 
+    /**
+     * Resolves the numeric venue id and display name from the venue slug/city.
+     * Returns true on success.
+     */
+    public boolean resolveVenue() {
         String venueUrl = String.format(
                 "https://api.resy.com/3/venue?url_slug=%s&location=%s",
-                slug, city
-        );
+                request.slug, request.city);
 
         HttpRequest venueRequest = HttpRequest.newBuilder()
                 .uri(URI.create(venueUrl))
-                .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:146.0) Gecko/20100101 Firefox/146.0")
+                .header("User-Agent", USER_AGENT)
                 .header("Accept", "application/json")
                 .header("Authorization", apiKey)
                 .header("Referer", "https://resy.com/")
@@ -48,39 +61,39 @@ public class ResyApiRequester {
                 .build();
 
         try {
-            // Send the request synchronously and get the response
             HttpResponse<String> response = client.send(venueRequest, HttpResponse.BodyHandlers.ofString());
-
-            // Check the response status code
             if (response.statusCode() == 200) {
-                System.out.println("Status Code: " + response.statusCode());
                 venueId = JsonParser.parseVenueId(response.body());
-
-            } else {
-                System.err.println("Venue API request failed with status code: " + response.statusCode());
-                System.err.println("Response body: " + response.body());
+                venueName = JsonParser.parseVenueName(response.body());
+                return true;
             }
-
+            System.err.println("Venue API request failed with status code: " + response.statusCode());
+            System.err.println("Response body: " + response.body());
         } catch (IOException | InterruptedException e) {
-            System.err.println("An error occurred during the HTTP request: " + e.getMessage());
+            System.err.println("An error occurred during the venue HTTP request: " + e.getMessage());
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
         }
+        return false;
     }
 
-    public void getWebsiteData(List<LocalDate> datesToCheck, int partySize) {
-        for (LocalDate date : datesToCheck) {
+    /** Fetches and returns all availability slots across the request's dates. */
+    public List<Slot> fetchSlots() {
+        List<Slot> slots = new ArrayList<>();
 
+        for (LocalDate date : request.dates) {
             System.out.println("Checking reservations for " + date);
 
             double lat = 0;
             double lon = 0;
             String apiUrl = String.format(
                     "https://api.resy.com/4/find?lat=%f&long=%f&day=%s&party_size=%d&venue_id=%s",
-                    lat, lon, date, partySize, venueId
-            );
+                    lat, lon, date, request.partySize, venueId);
 
-            HttpRequest request = HttpRequest.newBuilder()
+            HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(apiUrl))
-                    .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:146.0) Gecko/20100101 Firefox/146.0")
+                    .header("User-Agent", USER_AGENT)
                     .header("Accept", "application/json")
                     .header("Authorization", apiKey)
                     .header("Referer", "https://resy.com/")
@@ -88,27 +101,28 @@ public class ResyApiRequester {
                     .build();
 
             try {
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
+                HttpResponse<String> response = client.send(req, HttpResponse.BodyHandlers.ofString());
                 if (response.statusCode() == 200) {
-                    System.out.println("Status Code: " + response.statusCode());
-                    JsonParser.parseAvailability(response.body());
-
+                    slots.addAll(JsonParser.parseAvailability(response.body()));
                 } else {
-                    System.err.println("Webiste API request failed with status code: " + response.statusCode());
+                    System.err.println("Availability API request failed with status code: " + response.statusCode());
                 }
-
             } catch (IOException | InterruptedException e) {
-                System.err.println("An error occurred during the HTTP request: " + e.getMessage());
+                System.err.println("An error occurred during the availability HTTP request: " + e.getMessage());
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                    return slots;
+                }
             }
-            
+
             try {
                 long jitterMs = ThreadLocalRandom.current().nextLong(0, 1501);
-                TimeUnit.MILLISECONDS.sleep(BASE_MS + jitterMs);
+                TimeUnit.MILLISECONDS.sleep(BETWEEN_DATE_MS + jitterMs);
             } catch (InterruptedException e) {
-                System.out.println("Sleep was interrupted");
                 Thread.currentThread().interrupt();
+                return slots;
             }
         }
+        return slots;
     }
 }
