@@ -13,7 +13,10 @@ import java.util.concurrent.TimeUnit;
 /**
  * A single background monitoring job: repeatedly polls Resy availability for one
  * {@link MonitorRequest}, notifies Discord when a matching slot first appears, and
- * dedupes so the same slot is not re-alerted on later polls. Runs until {@link #stop()}.
+ * dedupes so the same slot is not re-alerted on later polls. A slot is only marked as
+ * notified once its Discord send actually succeeds, so a failed or partial send (e.g.
+ * more matches than fit in one Discord message) gets retried on the next poll instead
+ * of being silently dropped. Runs until {@link #stop()}.
  */
 public class MonitorJob implements Runnable {
 
@@ -75,16 +78,26 @@ public class MonitorJob implements Runnable {
             List<Slot> slots = api.fetchSlots();
             lastCheckedEpochMs = System.currentTimeMillis();
 
-            List<Slot> newMatches = new ArrayList<>();
+            // Filter to slots not yet notified, but don't mark them notified until the
+            // send actually succeeds — otherwise a failed/partial Discord send (e.g. more
+            // than 10 matches in one poll) would permanently suppress those slots.
+            List<Slot> candidates = new ArrayList<>();
             for (Slot slot : slots) {
-                if (matches(slot) && notified.add(dedupeKey(slot))) {
-                    newMatches.add(slot);
+                if (matches(slot) && !notified.contains(dedupeKey(slot))) {
+                    candidates.add(slot);
                 }
             }
 
-            if (!newMatches.isEmpty()) {
-                System.out.println("[" + id + "] Found " + newMatches.size() + " new matching slot(s): " + newMatches);
-                DiscordNotification.sendMsg(api.getVenueName(), request, newMatches);
+            if (!candidates.isEmpty()) {
+                System.out.println("[" + id + "] Found " + candidates.size() + " new matching slot(s): " + candidates);
+                List<Slot> sent = DiscordNotification.sendMsg(api.getVenueName(), request, candidates);
+                for (Slot slot : sent) {
+                    notified.add(dedupeKey(slot));
+                }
+                if (sent.size() < candidates.size()) {
+                    System.err.println("[" + id + "] " + (candidates.size() - sent.size())
+                            + " slot(s) failed to notify and will be retried next poll.");
+                }
             } else {
                 System.out.println("[" + id + "] No new matches. Waiting for next interval...");
             }
