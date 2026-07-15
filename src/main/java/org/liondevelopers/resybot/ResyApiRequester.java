@@ -103,7 +103,7 @@ public class ResyApiRequester {
             try {
                 HttpResponse<String> response = client.send(req, HttpResponse.BodyHandlers.ofString());
                 if (response.statusCode() == 200) {
-                    slots.addAll(JsonParser.parseAvailability(response.body()));
+                    slots.addAll(JsonParser.parseAvailability(response.body(), date));
                 } else {
                     System.err.println("Availability API request failed with status code: " + response.statusCode());
                 }

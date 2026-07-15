@@ -111,14 +111,17 @@ public class MonitorJob implements Runnable {
 
     private boolean matches(Slot slot) {
         LocalDateTime dateTime = LocalDateTime.parse(slot.dateTime, SLOT_FORMAT);
-        boolean isDate = request.dates.contains(dateTime.toLocalDate());
+        // Match on the dining night the slot was fetched under, not the calendar date of
+        // its timestamp: a 12:00 AM slot belongs to the previous evening's query even
+        // though its timestamp lands on the next day.
+        boolean isDate = request.dates.contains(slot.queryDate);
         boolean isPartySize = slot.partySize == request.partySize;
         boolean isTime = isTimeBetween(request.startTime, request.endTime, dateTime.toLocalTime());
         return isDate && isPartySize && isTime;
     }
 
     private String dedupeKey(Slot slot) {
-        return slot.dateTime + "|" + slot.partySize;
+        return slot.queryDate + "|" + slot.dateTime + "|" + slot.partySize;
     }
 
     /** Sleeps BASE_MS + jitter; returns false if interrupted. */
