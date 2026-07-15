@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ResyBot</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --card: #ffffff;
+      --text: #1b1f24;
+      --muted: #6b7280;
+      --border: #e3e6ea;
+      --accent: #00b14f;
+      --accent-hover: #009a45;
+      --danger: #e5484d;
+      --input-bg: #ffffff;
+      --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1114;
+        --card: #181b1f;
+        --text: #e6e8eb;
+        --muted: #9199a1;
+        --border: #2a2e33;
+        --accent: #00b14f;
+        --accent-hover: #26c368;
+        --danger: #ff5b60;
+        --input-bg: #101316;
+        --shadow: 0 1px 3px rgba(0,0,0,0.4);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+    header h1 { margin: 0 0 .25rem; font-size: 1.75rem; letter-spacing: -0.02em; }
+    header p { margin: 0 0 2rem; color: var(--muted); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 2rem;
+    }
+    h2 { font-size: 1.05rem; margin: 0 0 1rem; }
+    label { display: block; font-size: .82rem; font-weight: 600; color: var(--muted); margin-bottom: .35rem; }
+    input {
+      width: 100%;
+      padding: .6rem .7rem;
+      font-size: .95rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--text);
+    }
+    input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+    .field { margin-bottom: 1.1rem; }
+    .row { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .row .field { flex: 1; min-width: 140px; }
+    .date-row { display: flex; gap: .5rem; margin-bottom: .5rem; align-items: center; }
+    .date-row input { flex: 1; }
+    button {
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: .55rem .9rem;
+    }
+    .btn-primary { background: var(--accent); color: #fff; padding: .7rem 1.2rem; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: .6; cursor: default; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); }
+    .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--border); font-size: .85rem; }
+    .btn-danger:hover { border-color: var(--danger); }
+    .icon-btn { width: 38px; padding: .55rem 0; text-align: center; }
+    #msg { margin-top: 1rem; font-size: .9rem; min-height: 1.2em; }
+    #msg.ok { color: var(--accent); }
+    #msg.err { color: var(--danger); }
+    .monitors { display: flex; flex-direction: column; gap: .75rem; }
+    .monitor {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .9rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .monitor .name { font-weight: 600; }
+    .monitor .meta { font-size: .82rem; color: var(--muted); margin-top: .2rem; }
+    .badge {
+      display: inline-block;
+      font-size: .72rem;
+      font-weight: 600;
+      padding: .12rem .5rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      margin-left: .4rem;
+      text-transform: capitalize;
+    }
+    .badge.monitoring { color: var(--accent); border-color: var(--accent); }
+    .badge.error { color: var(--danger); border-color: var(--danger); }
+    .empty { color: var(--muted); font-size: .9rem; }
+    .hint { font-size: .78rem; color: var(--muted); margin-top: .3rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>🍽️ ResyBot</h1>
+      <p>Monitor a Resy venue and get a Discord alert the moment a matching table opens up.</p>
+    </header>
+
+    <div class="card">
+      <h2>Start a monitor</h2>
+      <form id="form">
+        <div class="field">
+          <label for="url">Resy venue URL</label>
+          <input id="url" name="url" type="url" required
+                 placeholder="https://resy.com/cities/new-york-ny/venues/cote-nyc" />
+          <div class="hint">Copy the venue page URL from resy.com.</div>
+        </div>
+
+        <div class="field">
+          <label>Dates</label>
+          <div id="dates"></div>
+          <button type="button" class="btn-ghost" id="add-date">+ Add date</button>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="partySize">Party size</label>
+            <input id="partySize" name="partySize" type="number" min="1" value="2" required />
+          </div>
+          <div class="field">
+            <label for="startTime">Earliest time</label>
+            <input id="startTime" name="startTime" type="time" value="18:00" required />
+          </div>
+          <div class="field">
+            <label for="endTime">Latest time</label>
+            <input id="endTime" name="endTime" type="time" value="21:00" required />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="webhookUrl">Discord webhook <span style="font-weight:400">(optional)</span></label>
+          <input id="webhookUrl" name="webhookUrl" type="url"
+                 placeholder="https://discord.com/api/webhooks/..." />
+          <div class="hint">Leave blank to use the server's default webhook.</div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="submit">Start monitoring</button>
+        <div id="msg"></div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Active monitors</h2>
+      <div id="monitors" class="monitors"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (sel) => document.querySelector(sel);
+    const datesEl = $('#dates');
+
+    function addDateRow(value) {
+      const row = document.createElement('div');
+      row.className = 'date-row';
+      const input = document.createElement('input');
+      input.type = 'date';
+      input.required = true;
+      if (value) input.value = value;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'btn-ghost icon-btn';
+      remove.textContent = '×';
+      remove.title = 'Remove date';
+      remove.addEventListener('click', () => {
+        if (datesEl.children.length > 1) row.remove();
+      });
+      row.append(input, remove);
+      datesEl.appendChild(row);
+    }
+
+    // Seed one date row defaulted to today.
+    addDateRow(new Date().toISOString().slice(0, 10));
+    $('#add-date').addEventListener('click', () => addDateRow());
+
+    function setMsg(text, kind) {
+      const el = $('#msg');
+      el.textContent = text;
+      el.className = kind || '';
+    }
+
+    $('#form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const dates = [...datesEl.querySelectorAll('input')].map(i => i.value).filter(Boolean);
+      if (dates.length === 0) { setMsg('Add at least one date.', 'err'); return; }
+
+      const body = {
+        url: $('#url').value.trim(),
+        dates,
+        partySize: parseInt($('#partySize').value, 10),
+        startTime: $('#startTime').value,
+        endTime: $('#endTime').value,
+      };
+      const webhook = $('#webhookUrl').value.trim();
+      if (webhook) body.webhookUrl = webhook;
+
+      const submit = $('#submit');
+      submit.disabled = true;
+      setMsg('Starting…', '');
+      try {
+        const res = await fetch('/api/monitors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setMsg('Monitoring started. You will get a Discord alert when a table opens.', 'ok');
+          invalidate();
+          refresh();
+        } else {
+          setMsg(data.error || 'Failed to start monitor.', 'err');
+        }
+      } catch (err) {
+        setMsg('Network error: ' + err.message, 'err');
+      } finally {
+        submit.disabled = false;
+      }
+    });
+
+    function fmtLastChecked(ms) {
+      if (!ms) return 'not yet';
+      const secs = Math.round((Date.now() - ms) / 1000);
+      if (secs < 60) return secs + 's ago';
+      return Math.round(secs / 60) + 'm ago';
+    }
+
+    async function stopMonitor(id) {
+      await fetch('/api/monitors/' + id, { method: 'DELETE' });
+      invalidate();
+      refresh();
+    }
+
+    function render(jobs) {
+      const box = $('#monitors');
+      box.innerHTML = '';
+      if (!jobs.length) {
+        box.innerHTML = '<div class="empty">No active monitors.</div>';
+        return;
+      }
+      for (const j of jobs) {
+        const el = document.createElement('div');
+        el.className = 'monitor';
+        const statusClass = j.status === 'monitoring' ? 'monitoring'
+          : (j.status && j.status.startsWith('error') ? 'error' : '');
+        el.innerHTML = `
+          <div>
+            <div class="name">${j.venueName || j.url}
+              <span class="badge ${statusClass}">${j.status}</span>
+            </div>
+            <div class="meta">
+              Party of ${j.partySize} · ${j.startTime}–${j.endTime} · ${j.dates.join(', ')}
+            </div>
+            <div class="meta">Last checked: ${fmtLastChecked(j.lastCheckedEpochMs)}</div>
+          </div>`;
+        const stop = document.createElement('button');
+        stop.className = 'btn-danger';
+        stop.textContent = 'Stop';
+        stop.addEventListener('click', () => stopMonitor(j.id));
+        el.appendChild(stop);
+        box.appendChild(el);
+      }
+    }
+
+    let lastJson = null;
+    async function refresh() {
+      try {
+        const res = await fetch('/api/monitors');
+        const text = await res.text();
+        // Only re-render when the data actually changed, so the list DOM isn't
+        // wiped out from under the user (or an in-flight click) on every poll.
+        if (text === lastJson) return;
+        lastJson = text;
+        render(JSON.parse(text));
+      } catch (_) { /* keep last render on transient errors */ }
+    }
+
+    // Force a re-render on the next poll (e.g. right after we mutate the list).
+    function invalidate() { lastJson = null; }
+
+    refresh();
+    setInterval(refresh, 5000);
+  </script>
+</body>
+</html>

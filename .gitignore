@@ -1,1 +1,11 @@
 .env
+
+# Build output
+target/
+dependency-reduced-pom.xml
+
+# Editor / IDE
+.vscode/
+
+# Local API response dumps (sample data captured during development)
+dumps/
